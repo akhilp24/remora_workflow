@@ -11,6 +11,8 @@ def main():
     mod_num = input("Which base is modified (0 represents the first letter): ")
     mod_bam_file = sanitize_path(input("Drag and drop your modified BAM file: "))
     g_type = input("Which G is modified? Enter one of the following (G29, G30, G31): ")
+
+    # Dataset prepare
     subprocess.run([
         "remora", "dataset", "prepare",
         pod5_file, can_bam_file,
@@ -31,8 +33,12 @@ def main():
         "--mod-base", "o", "8oxoG",
         "--focus-reference-positions", f"stationaryfiles/focus_reference_positions{g_type}.bed"
     ])
+
+    # Plotting
     plot = input("Would you like to get a plot of your dataset? (y/n) ")
     dataset_plotting(plot, g_type)
+
+    # Training
     trainbool = input("Would you like to train a model? (y/n) ")
     if trainbool == "y":
         print("Great!")
@@ -40,6 +46,15 @@ def main():
         dataset_train()
     else:
         print("Got it. No Problem.")
+
+
+    # Inference
+    inferbool = input("Would you like to performance an inference? (y/n)")
+    if inferbool == "y":
+        best_mod = sanitize_path(input("Input the path of the model you would like to use to perform the inference: "))
+        dataset_infer(pod5_dir=pod5_file, can_bam=can_bam_file, mod_bam=mod_bam_file, best_model=best_mod)
+    else:
+        print("Sounds good.")
 
 def sanitize_path(path):
     current_working_directory = str(os.getcwd())
@@ -74,6 +89,10 @@ def dataset_train():
         "--output-path", "train_results"
     ])
     print("Congrats!")
+
+def dataset_infer(pod5_dir, can_bam, mod_bam, best_model):
+    subprocess.run(["remora", "infer", "from_pod5_and_bam", "--reference_anchored", pod5_dir, can_bam, "--model", best_model, "--out-file", "can_infer.bam", "--log-filename", "can_infer.log", "--device", "0"])
+    subprocess.run(["remora", "infer", "from_pod5_and_bam", "--reference_anchored",pod5_dir, mod_bam, "--model", best_model, "--out-file", "mod_infer.bam", "--log-filename", "mod_infer.log", "--device", "0"])
 
 def dataset_plotting(plot, g_type):
     if plot == "y":
